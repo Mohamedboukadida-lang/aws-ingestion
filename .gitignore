@@ -1,0 +1,23 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+.terraform.lock.hcl.bak
+crash.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+build/
+dist/
+*.zip
+
+# Local
+.env
+.DS_Store
+
+# Backend config (contains account-specific bucket name)
+backend.hcl
