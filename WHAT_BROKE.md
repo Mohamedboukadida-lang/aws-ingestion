@@ -17,3 +17,9 @@ Format: symptom, cause, fix, lesson.
 ## Day 1: apt repo failed to match the distro (Kali)
 - **Symptom:** `lsb_release -cs` returns `kali-rolling`, which HashiCorp's apt repo does not serve.
 - **Fix:** Use the Debian codename (`bookworm`) in the repo line.
+
+## Day 1: Cursor added a `Co-authored-by` trailer to commits
+- **Symptom:** Commits carried `Co-authored-by: Cursor <cursoragent@cursor.com>`.
+- **Cause:** The editor injects the trailer when it runs `git commit`.
+- **Fix:** Local `commit-msg` hook strips the line; amended and force-pushed the first commit.
+- **Lesson:** Check `git log --format=%B` before pushing to a public repo.
