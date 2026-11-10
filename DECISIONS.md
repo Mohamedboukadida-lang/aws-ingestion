@@ -26,3 +26,23 @@ Format: choice, alternatives, reason.
 - **Choice:** `backend.tf` holds only non-sensitive settings; the bucket name (contains the account ID) is supplied with `terraform init -backend-config=backend.hcl`.
 - **Alternatives:** Hard-code the bucket name; env vars.
 - **Reason:** The repo is public and account IDs must not be committed. Backend blocks cannot use variables, so partial configuration is the supported mechanism. `backend.hcl.example` documents the format.
+
+## 6. SQS standard queue, not FIFO
+- **Choice:** Standard queue with a DLQ, `maxReceiveCount = 3`, visibility timeout 180 s.
+- **Alternatives:** FIFO queue.
+- **Reason:** FIFO costs more and caps throughput per message group. Duplicates and ordering are handled by an idempotency key and a conditional PutItem in the consumer (day 5). Three receives survive a transient DynamoDB throttle, while a poison message still reaches the DLQ within minutes. Visibility timeout is 6x the planned consumer timeout, per AWS guidance.
+
+## 7. One IAM role per function
+- **Choice:** Separate `producer` and `consumer` roles with resource-scoped inline policies.
+- **Alternatives:** One shared Lambda role.
+- **Reason:** Blast radius. A compromised public-facing producer can only enqueue, never read the table or the archive. Policies use `aws_iam_policy_document` so typos fail at plan time.
+
+## 8. S3 archive lifecycle tiers
+- **Choice:** Standard, then Standard-IA at 30 days, Glacier Instant Retrieval at 90, expire at 365.
+- **Alternatives:** Stay in Standard; Intelligent-Tiering.
+- **Reason:** Raw payloads are write-once, read-rarely, and the access pattern is known, so fixed tiers are cheaper than Intelligent-Tiering monitoring fees.
+
+## 9. GitHub OIDC trust scoped by `sub`
+- **Choice:** Deploy role trusts only this repo, on `main` or pull requests; no permissions attached until day 8.
+- **Alternatives:** IAM user with stored keys in GitHub secrets.
+- **Reason:** No long-lived keys; CI gets a short STS session. The `sub` condition stops any other repository from assuming the role.

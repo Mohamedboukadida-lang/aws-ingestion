@@ -23,3 +23,9 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** The editor injects the trailer when it runs `git commit`.
 - **Fix:** Local `commit-msg` hook strips the line; amended and force-pushed the first commit.
 - **Lesson:** Check `git log --format=%B` before pushing to a public repo.
+
+## Day 2: S3 lifecycle and SQS redrive policy resources were slow to create
+- **Symptom:** `aws_s3_bucket_lifecycle_configuration` took ~56 s and `aws_sqs_queue_redrive_allow_policy` ~25 s to apply; destroying the queues took ~43 s.
+- **Cause:** Eventual consistency in the AWS APIs; the provider polls until the setting is visible.
+- **Fix:** None needed, just wait.
+- **Lesson:** Slow is not stuck; check `Still creating...` output before interrupting an apply.
