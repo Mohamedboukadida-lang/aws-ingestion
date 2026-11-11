@@ -46,3 +46,18 @@ Format: choice, alternatives, reason.
 - **Choice:** Deploy role trusts only this repo, on `main` or pull requests; no permissions attached until day 8.
 - **Alternatives:** IAM user with stored keys in GitHub secrets.
 - **Reason:** No long-lived keys; CI gets a short STS session. The `sub` condition stops any other repository from assuming the role.
+
+## 10. HTTP API (API Gateway v2) instead of REST API
+- **Choice:** HTTP API with the built-in JWT authorizer against Cognito.
+- **Alternatives:** REST API with a Cognito authorizer.
+- **Reason:** Roughly 70% cheaper per request, lower latency, native JWT support. Gives up usage plans, API keys, request validation and WAF integration, none of which this Cognito-protected ingest endpoint needs.
+
+## 11. Idempotency key derived from the observation
+- **Choice:** SHA-256 of (device_id, kind, recorded_at), computed server-side.
+- **Alternatives:** Client-supplied UUID; hash of the whole body.
+- **Reason:** A client retrying a failed request resends the same observation, so the key is stable with no client cooperation. Hashing the whole body would let a changed `value` create a duplicate. The consumer (day 5) will drop repeats with a conditional PutItem.
+
+## 12. ID token vs access token at the JWT authorizer
+- **Choice:** Test with the ID token (`aud` = client ID).
+- **Alternatives:** Access token.
+- **Reason:** In practice both were accepted (see WHAT_BROKE). The ID token matches the documented `aud` check; access tokens work because the HTTP API authorizer falls back to the `client_id` claim.

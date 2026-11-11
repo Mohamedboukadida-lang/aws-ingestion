@@ -29,3 +29,15 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** Eventual consistency in the AWS APIs; the provider polls until the setting is visible.
 - **Fix:** None needed, just wait.
 - **Lesson:** Slow is not stuck; check `Still creating...` output before interrupting an apply.
+
+## Day 3: expected 401 with the access token, got 202
+- **Symptom:** The course notes predicted Cognito access tokens would fail the JWT authorizer. Both the ID and access tokens returned 202.
+- **Cause:** Access tokens have no `aud`, but the HTTP API JWT authorizer validates the `client_id` claim in that case.
+- **Fix:** None needed. Documented the real behaviour in DECISIONS.
+- **Lesson:** Verify claims from docs with a test. Choose the token type deliberately: access tokens are meant for API authorization, ID tokens for identity.
+
+## Day 3: `eod.sh` failed with a pytest collection error
+- **Symptom:** `python -m pytest` errored on import in the close script.
+- **Cause:** System Python has none of the project's dependencies; they live in uv's `.venv`.
+- **Fix:** `eod.sh` now runs `uv run pytest -q`.
+- **Lesson:** Scripts should call the project's tool runner, not whichever Python is on PATH.

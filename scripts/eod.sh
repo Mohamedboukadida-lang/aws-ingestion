@@ -7,7 +7,7 @@ terraform -chdir=infra fmt -recursive
 terraform -chdir=infra validate
 
 if [ -d tests ]; then
-  python -m pytest -q
+  uv run pytest -q
 fi
 
 if terraform -chdir=infra state list 2>/dev/null | grep -q .; then
