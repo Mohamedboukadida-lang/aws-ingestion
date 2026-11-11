@@ -20,6 +20,12 @@ data "aws_iam_policy_document" "producer" {
     actions   = ["sqs:SendMessage", "sqs:GetQueueUrl"]
     resources = [aws_sqs_queue.events.arn]
   }
+  # Wildcard justified: X-Ray write actions do not support resource-level permissions.
+  statement {
+    sid       = "XRayWrite"
+    actions   = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "producer" {

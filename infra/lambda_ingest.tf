@@ -19,6 +19,10 @@ resource "aws_lambda_function" "ingest" {
   timeout          = 10
   memory_size      = 256
 
+  tracing_config {
+    mode = "Active"
+  }
+
   environment {
     variables = {
       QUEUE_URL = aws_sqs_queue.events.url
