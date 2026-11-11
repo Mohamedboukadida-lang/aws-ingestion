@@ -47,3 +47,28 @@ def test_invalid_kind_rejected(client):
     tc, _ = client
     r = tc.post("/events", json=VALID | {"kind": "blood_pressure"})
     assert r.status_code == 422
+
+
+def test_missing_field_rejected(client):
+    tc, _ = client
+    bad = {k: v for k, v in VALID.items() if k != "device_id"}
+    assert tc.post("/events", json=bad).status_code == 422
+
+
+def test_queue_failure_returns_503_without_leaking_details(client, monkeypatch):
+    tc, _ = client
+    monkeypatch.setenv("QUEUE_URL", "https://sqs.eu-central-1.amazonaws.com/000000000000/missing")
+    r = tc.post("/events", json=VALID)
+    assert r.status_code == 503
+    assert r.headers["retry-after"] == "5"
+    assert "missing" not in r.text and "000000000000" not in r.text
+
+
+def test_request_is_logged_as_json(client, caplog):
+    tc, _ = client
+    with caplog.at_level("INFO"):
+        tc.post("/events", json=VALID)
+    lines = [json.loads(r.message) for r in caplog.records if r.message.startswith("{")]
+    req = next(line for line in lines if line["msg"] == "request")
+    assert req["method"] == "POST" and req["path"] == "/events" and req["status"] == 202
+    assert "duration_ms" in req
