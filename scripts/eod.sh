@@ -19,5 +19,9 @@ fi
 day="${1:?usage: scripts/eod.sh <day-number> [message]}"
 msg="${2:-close}"
 git add -A
-git commit -m "docs: day ${day} close – ${msg}"
+if ! git diff --cached --quiet; then
+  git commit -m "docs: day ${day} close – ${msg}"
+else
+  echo "nothing new to commit; pushing existing commits"
+fi
 git push
