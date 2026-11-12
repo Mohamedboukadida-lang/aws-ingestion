@@ -1,5 +1,8 @@
 resource "aws_s3_bucket" "archive" {
   bucket = "${local.name}-archive-${local.account_id}"
+  # Dev only: synthetic data, and the stack is destroyed after every session.
+  # Remove for a real environment.
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_public_access_block" "archive" {
