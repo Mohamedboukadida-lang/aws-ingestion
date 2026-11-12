@@ -44,3 +44,15 @@ Format: symptom, cause, fix, lesson.
 
 ## Day 4: nothing broke on deploy
 - Verified live: the real API Gateway request id appears in the JSON log line, and an X-Ray trace was recorded. First request took ~950 ms (cold start with a large zip), which is worth revisiting in the day 12 load test.
+
+## Day 5: `terraform destroy` failed with BucketNotEmpty
+- **Symptom:** `DeleteBucket` returned 409 `BucketNotEmpty`; every other resource was already destroyed.
+- **Cause:** The consumer had archived an object under `raw/`. Terraform will not delete a non-empty bucket by default.
+- **Fix:** Added `force_destroy = true` to the dev archive bucket, applied it, then destroyed.
+- **Lesson:** Anything that writes into a bucket makes destroy fail. Decide per environment: force_destroy in dev, never in prod.
+
+## Day 5: DLQ redrive takes ~9 minutes, not seconds
+- **Symptom:** A poison message sat in the main queue for about 9 minutes before reaching the DLQ.
+- **Cause:** `maxReceiveCount = 3` and a 180 s visibility timeout: each failed attempt is retried only after the timeout expires.
+- **Fix:** None; this is the intended trade-off.
+- **Lesson:** Visibility timeout sets retry cadence. The doc's "DLQ in minutes" is really 2 x visibility timeout plus processing.

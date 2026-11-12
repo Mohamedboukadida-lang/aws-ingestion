@@ -76,3 +76,18 @@ Format: choice, alternatives, reason.
 - **Choice:** `tracing_config { mode = "Active" }` on the ingest Lambda; `xray:PutTraceSegments` and `PutTelemetryRecords` on `*`.
 - **Alternatives:** No tracing until day 10; Powertools tracer.
 - **Reason:** Enabling it now means traces exist when dashboards are built. X-Ray write actions do not support resource-level permissions, so `*` is unavoidable. HTTP APIs do not emit X-Ray segments, so traces start at the Lambda.
+
+## 16. Consumer writes S3 first, then a conditional DynamoDB put
+- **Choice:** Archive the raw payload to `raw/<day>/<idempotency_key>.json`, then `PutItem` with `attribute_not_exists(pk)`; a failed condition means "duplicate, success".
+- **Alternatives:** DynamoDB first; a separate idempotency marker item; DynamoDB transactions.
+- **Reason:** S3 overwrites are harmless, so doing it first means a crash between steps loses nothing on retry. Doing DynamoDB first would mark the event done and skip the archive on redelivery. A conditional put is one atomic call, cheaper than transactions.
+
+## 17. Partial batch responses (`ReportBatchItemFailures`)
+- **Choice:** Return `batchItemFailures`; process each record in its own try/except.
+- **Alternatives:** Raise on any failure (whole batch retried); batch size 1.
+- **Reason:** Without it one poison message forces the 9 good ones to be reprocessed and inflates their receive count toward the DLQ. Batch size 10 keeps throughput.
+
+## 18. `force_destroy` on the dev archive bucket
+- **Choice:** `force_destroy = true` on `aws_s3_bucket.archive`.
+- **Alternatives:** Empty the bucket manually before every destroy; no force_destroy.
+- **Reason:** Data is synthetic and the stack is destroyed daily. Must be removed for any real environment.
