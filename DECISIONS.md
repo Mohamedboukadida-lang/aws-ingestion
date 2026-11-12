@@ -61,3 +61,18 @@ Format: choice, alternatives, reason.
 - **Choice:** Test with the ID token (`aud` = client ID).
 - **Alternatives:** Access token.
 - **Reason:** In practice both were accepted (see WHAT_BROKE). The ID token matches the documented `aud` check; access tokens work because the HTTP API authorizer falls back to the `client_id` claim.
+
+## 13. Structured JSON request log via middleware
+- **Choice:** One JSON line per request (request_id, method, path, status, duration_ms) emitted by a FastAPI middleware, plus an `enqueued` line with idempotency key.
+- **Alternatives:** Plain-text logs; API Gateway access logs only; Powertools for Lambda.
+- **Reason:** JSON fields are directly queryable in CloudWatch Logs Insights (day 10) with no parsing. Powertools is a good option but adds a dependency for what ~20 lines do. API Gateway access logs can be added later for the edge view.
+
+## 14. 503 with Retry-After on queue failure, no AWS details to the client
+- **Choice:** Map boto errors to `503` + `Retry-After: 5`; log the exception class server-side.
+- **Alternatives:** Let FastAPI return a generic 500; return the AWS message.
+- **Reason:** 503 tells clients the request is safe to retry, which is true because the idempotency key makes retries harmless. Raw AWS errors can leak queue URLs and account IDs.
+
+## 15. X-Ray active tracing with a justified wildcard
+- **Choice:** `tracing_config { mode = "Active" }` on the ingest Lambda; `xray:PutTraceSegments` and `PutTelemetryRecords` on `*`.
+- **Alternatives:** No tracing until day 10; Powertools tracer.
+- **Reason:** Enabling it now means traces exist when dashboards are built. X-Ray write actions do not support resource-level permissions, so `*` is unavoidable. HTTP APIs do not emit X-Ray segments, so traces start at the Lambda.

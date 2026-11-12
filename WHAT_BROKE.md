@@ -41,3 +41,6 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** System Python has none of the project's dependencies; they live in uv's `.venv`.
 - **Fix:** `eod.sh` now runs `uv run pytest -q`.
 - **Lesson:** Scripts should call the project's tool runner, not whichever Python is on PATH.
+
+## Day 4: nothing broke on deploy
+- Verified live: the real API Gateway request id appears in the JSON log line, and an X-Ray trace was recorded. First request took ~950 ms (cold start with a large zip), which is worth revisiting in the day 12 load test.
