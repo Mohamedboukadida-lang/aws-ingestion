@@ -91,3 +91,18 @@ Format: choice, alternatives, reason.
 - **Choice:** `force_destroy = true` on `aws_s3_bucket.archive`.
 - **Alternatives:** Empty the bucket manually before every destroy; no force_destroy.
 - **Reason:** Data is synthetic and the stack is destroyed daily. Must be removed for any real environment.
+
+## 19. GSI `by_day` for the daily aggregation (Query, not Scan)
+- **Choice:** Global secondary index on (`day`, `recorded_at`), projection ALL; the aggregator may only `Query` that index.
+- **Alternatives:** Scan with a filter; day-prefixed partition key; a separate table.
+- **Reason:** A Scan reads and bills the whole table every day and grows with history. The GSI reads only one day. Aggregate items have no `day` attribute, so they stay out of the index. The single-table design keeps events, idempotency markers and aggregates together.
+
+## 20. EventBridge rule at 00:05 UTC for the previous day, with a `day` override
+- **Choice:** `cron(5 0 * * ? *)` invokes the aggregator for yesterday (UTC); `{"day": "YYYY-MM-DD"}` reprocesses any day.
+- **Alternatives:** EventBridge Scheduler; aggregating "today so far" hourly.
+- **Reason:** Aggregating a complete day gives final numbers. The five-minute offset leaves room for in-flight messages. Output keys (`AGG#day`, `device#kind`) are deterministic, so reruns overwrite and never duplicate.
+
+## 21. DLQ alarm and a manual redrive script
+- **Choice:** CloudWatch alarm on DLQ `ApproximateNumberOfMessagesVisible > 0`, an encrypted SNS topic, and `scripts/redrive_dlq.sh` using `start-message-move-task`.
+- **Alternatives:** Automatic redrive; no alarm until day 10.
+- **Reason:** A DLQ message means a bug or bad data; blindly redriving loops it. A human fixes the cause, then replays. The SNS topic has no email subscription yet (it would need re-confirming after each daily destroy); subscriptions come with day 10.

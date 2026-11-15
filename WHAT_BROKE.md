@@ -56,3 +56,12 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** `maxReceiveCount = 3` and a 180 s visibility timeout: each failed attempt is retried only after the timeout expires.
 - **Fix:** None; this is the intended trade-off.
 - **Lesson:** Visibility timeout sets retry cadence. The doc's "DLQ in minutes" is really 2 x visibility timeout plus processing.
+
+## Day 6: provider deprecation warning on the DynamoDB table
+- **Symptom:** `hash_key is deprecated. Use key_schema instead.` on validate.
+- **Cause:** AWS provider 6.x is moving DynamoDB keys to a `key_schema` block.
+- **Fix:** Left as is (works, warning only). Revisit when pinning provider versions in CI.
+- **Lesson:** Warnings in CI will become errors eventually; track them.
+
+## Day 6: not verified live
+- The DLQ alarm only showed state `OK` (no failing message was sent) and `redrive_dlq.sh` was not run. The cron schedule was confirmed `ENABLED` but not waited on; the Lambda was invoked directly.
