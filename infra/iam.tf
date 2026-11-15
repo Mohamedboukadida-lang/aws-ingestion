@@ -75,3 +75,32 @@ resource "aws_iam_role_policy_attachment" "consumer_logs" {
   role       = aws_iam_role.consumer.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+# ---------- Aggregator ----------
+resource "aws_iam_role" "aggregator" {
+  name               = "${local.name}-aggregator"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+}
+
+data "aws_iam_policy_document" "aggregator" {
+  statement {
+    sid       = "ReadEventsByDay"
+    actions   = ["dynamodb:Query"]
+    resources = ["${aws_dynamodb_table.events.arn}/index/by_day"]
+  }
+  statement {
+    sid       = "WriteAggregates"
+    actions   = ["dynamodb:PutItem"]
+    resources = [aws_dynamodb_table.events.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "aggregator" {
+  role   = aws_iam_role.aggregator.id
+  policy = data.aws_iam_policy_document.aggregator.json
+}
+
+resource "aws_iam_role_policy_attachment" "aggregator_logs" {
+  role       = aws_iam_role.aggregator.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
