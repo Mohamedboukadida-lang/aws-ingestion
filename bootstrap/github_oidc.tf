@@ -141,6 +141,9 @@ data "aws_iam_policy_document" "apply" {
       "lambda:DeleteEventSourceMapping",
       "lambda:GetEventSourceMapping",
       "lambda:ListEventSourceMappings",
+      "lambda:TagResource",
+      "lambda:UntagResource",
+      "lambda:ListTags",
     ]
     resources = ["*"]
   }
