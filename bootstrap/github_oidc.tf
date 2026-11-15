@@ -189,6 +189,24 @@ data "aws_iam_policy_document" "apply" {
     resources = ["arn:aws:cloudwatch:${local.region}:${local.account_id}:alarm:${local.prefix}-*"]
   }
   statement {
+    sid       = "Dashboards"
+    actions   = ["cloudwatch:PutDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:GetDashboard"]
+    resources = ["arn:aws:cloudwatch::${local.account_id}:dashboard/${local.prefix}-*"]
+  }
+  # Wildcard resource justified: log delivery, resource policies and saved queries are
+  # account-level APIs without resource-level permissions (HTTP API access logging
+  # creates a log delivery and a CloudWatch Logs resource policy on the caller's behalf).
+  statement {
+    sid = "LogsAccountLevel"
+    actions = [
+      "logs:CreateLogDelivery", "logs:GetLogDelivery", "logs:UpdateLogDelivery",
+      "logs:DeleteLogDelivery", "logs:ListLogDeliveries",
+      "logs:PutResourcePolicy", "logs:DescribeResourcePolicies",
+      "logs:PutQueryDefinition", "logs:DeleteQueryDefinition", "logs:DescribeQueryDefinitions",
+    ]
+    resources = ["*"]
+  }
+  statement {
     sid       = "Sns"
     actions   = ["sns:*"]
     resources = ["arn:aws:sns:${local.region}:${local.account_id}:${local.prefix}-*"]
