@@ -65,3 +65,15 @@ Format: symptom, cause, fix, lesson.
 
 ## Day 6: not verified live
 - The DLQ alarm only showed state `OK` (no failing message was sent) and `redrive_dlq.sh` was not run. The cron schedule was confirmed `ENABLED` but not waited on; the Lambda was invoked directly.
+
+## Day 8: OIDC `AssumeRoleWithWebIdentity` denied from GitHub Actions
+- **Symptom:** `Not authorized to perform sts:AssumeRoleWithWebIdentity` after many retries, though the trust policy looked right.
+- **Cause:** The repo uses immutable subject claims, so the token `sub` is `repo:Owner@id/repo@id:pull_request`, not `repo:Owner/repo:pull_request`.
+- **Fix:** Read the real prefix with `gh api repos/<owner>/<repo>/actions/oidc/customization/sub` and trust that.
+- **Lesson:** Check the actual `sub` before debugging the rest. Retries with the same wrong claim just burn time.
+
+## Day 8: first CI apply failed on `lambda:TagResource`
+- **Symptom:** `CreateEventSourceMapping` returned 403 for `lambda:TagResource` on `event-source-mapping:*`.
+- **Cause:** `default_tags` tags the mapping, and the apply role had only the Create/Update/Delete actions.
+- **Fix:** Added `TagResource`, `UntagResource`, `ListTags` to the mapping statement.
+- **Lesson:** Least privilege is discovered by running the pipeline. A real apply is the only complete test of the policy, and it also proves `destroy` works.

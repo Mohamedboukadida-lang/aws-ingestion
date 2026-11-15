@@ -106,3 +106,33 @@ Format: choice, alternatives, reason.
 - **Choice:** CloudWatch alarm on DLQ `ApproximateNumberOfMessagesVisible > 0`, an encrypted SNS topic, and `scripts/redrive_dlq.sh` using `start-message-move-task`.
 - **Alternatives:** Automatic redrive; no alarm until day 10.
 - **Reason:** A DLQ message means a bug or bad data; blindly redriving loops it. A human fixes the cause, then replays. The SNS topic has no email subscription yet (it would need re-confirming after each daily destroy); subscriptions come with day 10.
+
+## 22. GitHub OIDC provider and deploy roles live in `bootstrap/`
+- **Choice:** OIDC provider, a read-only `github-plan` role and a scoped `github-apply` role are applied once from `bootstrap/`.
+- **Alternatives:** Keep them in `infra/` (as the course first had them).
+- **Reason:** `infra/` is destroyed every session, so CI would lose its own credentials and could never redeploy. Bootstrap is the one stack that is never destroyed.
+
+## 23. Separate plan and apply roles, split by OIDC `sub`
+- **Choice:** Pull requests assume `github-plan` (AWS `ReadOnlyAccess` plus read of the state file). Only `main` assumes `github-apply`.
+- **Alternatives:** One deploy role for both.
+- **Reason:** PR code is the least trusted input; a malicious PR can run arbitrary Terraform, so it must not hold write access. The `sub` claim is what AWS checks, so the split is enforced by AWS, not by workflow YAML.
+
+## 24. Apply role: prefix-scoped, with an IAM escalation guard
+- **Choice:** Every service statement is limited to `aws-ingestion-dev-*` resources. IAM can only manage `aws-ingestion-dev-*` roles, and `AttachRolePolicy` is allowed only for `AWSLambdaBasicExecutionRole` (condition `iam:PolicyARN`); `PassRole` only to Lambda.
+- **Alternatives:** `AdministratorAccess`; a permissions boundary.
+- **Reason:** A role that can create roles can otherwise make itself admin. The attach condition closes that path. Wildcard actions (`lambda:*`, `sqs:*`...) remain, scoped by resource, because Terraform makes dozens of Get/Put/Tag calls per resource type. Wildcard resources are limited to event source mappings (UUID known only after create) and Describe/List calls.
+
+## 25. Immutable OIDC subject claims
+- **Choice:** Trust `repo:<owner>@<id>/<repo>@<id>:<context>`, via `github_sub_prefix`.
+- **Alternatives:** `repo:<owner>/<repo>:<context>` (what most guides show).
+- **Reason:** The repo is configured for immutable subjects, so the classic format never matches. The IDs also stop a renamed or re-created repo from inheriting trust.
+
+## 26. Apply workflow is manual unless `AUTO_APPLY=true`
+- **Choice:** `workflow_dispatch` with `apply`/`destroy`; auto-apply on merge only if the repo variable is set.
+- **Alternatives:** Always apply on merge (the course's default).
+- **Reason:** The project is destroyed after each session; an unconditional apply on every push would silently recreate billable resources. The variable makes auto-deploy a deliberate switch.
+
+## 27. Cognito `ADMIN_USER_PASSWORD_AUTH` instead of `USER_PASSWORD_AUTH`
+- **Choice:** Client allows only the admin flow (`admin-initiate-auth`, which needs IAM credentials) and refresh tokens.
+- **Alternatives:** Keep USER_PASSWORD_AUTH; SRP; Hosted UI.
+- **Reason:** Verified `USER_PASSWORD_AUTH` is now rejected. Test tokens can still be minted by an IAM-authenticated operator, but a client cannot send a password directly to the pool.
