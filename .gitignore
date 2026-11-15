@@ -21,3 +21,6 @@ dist/
 
 # Backend config (contains account-specific bucket name)
 backend.hcl
+
+# Personal working notes (commit queue), never committed
+pending.md
