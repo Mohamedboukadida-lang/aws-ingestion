@@ -17,7 +17,6 @@ skip-check:
   - CKV_AWS_158  # Log group KMS
   # Logs
   - CKV_AWS_338  # 1-year log retention: 14 days is enough for a dev project, cost
-  - CKV_AWS_76   # API access logs: planned for day 10 (observability)
   # S3 archive (single-region dev bucket with deterministic keys)
   - CKV_AWS_144  # Cross-region replication: single-region by design, cost
   - CKV_AWS_18   # S3 access logging: needs a second bucket; revisit if audit is needed
