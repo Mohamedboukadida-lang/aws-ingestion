@@ -1,10 +1,16 @@
 # GitHub Actions -> AWS federation. Lives in bootstrap (applied once, never destroyed)
 # because CI must be able to authenticate before it can deploy infra/.
 
-variable "github_repo" {
+# This repo uses GitHub's immutable subject claims, so the OIDC `sub` is
+#   repo:<owner>@<owner-id>/<repo>@<repo-id>:<context>
+# not repo:<owner>/<repo>:<context>. Find the prefix with:
+#   gh api repos/<owner>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix
+# The numeric IDs are public repository identifiers, not secrets. The IDs make the
+# trust survive a repo rename and block a re-registered name from impersonating it.
+variable "github_sub_prefix" {
   type        = string
-  description = "owner/name of the GitHub repository"
-  default     = "Mohamedboukadida-lang/aws-ingestion"
+  description = "OIDC subject prefix for the repository"
+  default     = "repo:Mohamedboukadida-lang@293394727/aws-ingestion@1452702548"
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -39,7 +45,7 @@ data "aws_iam_policy_document" "trust_plan" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_issuer}:sub"
-      values   = ["repo:${var.github_repo}:pull_request"]
+      values   = ["${var.github_sub_prefix}:pull_request"]
     }
   }
 }
@@ -59,7 +65,7 @@ data "aws_iam_policy_document" "trust_apply" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_issuer}:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      values   = ["${var.github_sub_prefix}:ref:refs/heads/main"]
     }
   }
 }

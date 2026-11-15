@@ -12,7 +12,7 @@ resource "aws_cognito_user_pool_client" "api" {
   generate_secret = false
 
   explicit_auth_flows = [
-    "ALLOW_USER_PASSWORD_AUTH", # for curl testing only; remove on day 8
+    "ALLOW_ADMIN_USER_PASSWORD_AUTH", # only callable with IAM credentials (admin-initiate-auth)
     "ALLOW_REFRESH_TOKEN_AUTH",
   ]
 }

@@ -1,0 +1,71 @@
+name: terraform-plan
+
+on:
+  pull_request:
+    paths: ["infra/**", "src/**", "tests/**", "scripts/**", "pyproject.toml", "uv.lock", ".github/workflows/**"]
+
+permissions:
+  id-token: write       # OIDC token for AWS
+  contents: read
+  pull-requests: write  # post the plan as a comment
+
+concurrency:
+  group: plan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Unit tests
+        run: uv run pytest -q
+
+      - name: Build Lambda packages
+        run: |
+          scripts/build_lambda.sh ingest
+          scripts/build_lambda.sh consumer
+          scripts/build_lambda.sh aggregate
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.17.1"
+          terraform_wrapper: false
+
+      - name: Init (read-only role, so no state locking on PRs)
+        working-directory: infra
+        run: |
+          account=$(aws sts get-caller-identity --query Account --output text)
+          terraform init -input=false -backend-config="bucket=aws-ingestion-tfstate-${account}"
+
+      - name: Format and validate
+        working-directory: infra
+        run: |
+          terraform fmt -check -recursive
+          terraform validate
+
+      - name: Plan
+        id: plan
+        working-directory: infra
+        run: terraform plan -input=false -lock=false -no-color 2>&1 | tee ../plan.txt
+
+      - name: Comment plan on PR
+        if: always() && steps.plan.outcome != 'skipped'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('plan.txt', 'utf8').slice(-60000);
+            const body = "### Terraform plan\n<details><summary>Show plan</summary>\n\n```\n" + plan + "\n```\n</details>";
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number, body,
+            });
