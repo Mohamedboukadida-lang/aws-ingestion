@@ -19,6 +19,10 @@ resource "aws_lambda_function" "consumer" {
   timeout          = 30 # queue visibility timeout (180 s) is 6x this
   memory_size      = 256
 
+  tracing_config {
+    mode = "Active"
+  }
+
   environment {
     variables = {
       TABLE_NAME     = aws_dynamodb_table.events.name

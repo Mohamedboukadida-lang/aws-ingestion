@@ -19,6 +19,10 @@ resource "aws_lambda_function" "aggregate" {
   timeout          = 60
   memory_size      = 256
 
+  tracing_config {
+    mode = "Active"
+  }
+
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.events.name
