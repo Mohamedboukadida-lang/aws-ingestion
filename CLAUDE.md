@@ -25,4 +25,4 @@ Cross-cutting: Secrets Manager, least-privilege IAM, GitHub Actions OIDC (no sto
 Use the `aws-ingestion-project-coach` skill. Ask for one small step at a time, tied to the current day.
 
 ## Progress
-- Day 1: repo created, AWS CLI and IAM identity set up; Terraform install and state bucket bootstrap in progress
+- Days 1-5 done: state, IAM, ingest API (Cognito), idempotent consumer, logging, X-Ray. Next: aggregation + EventBridge, then CI/CD (day 8)
