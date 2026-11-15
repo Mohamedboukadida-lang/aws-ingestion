@@ -34,6 +34,21 @@ resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.http.id
   name        = "$default"
   auto_deploy = true
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.api_access.arn
+    format = jsonencode({
+      requestId      = "$context.requestId"
+      ip             = "$context.identity.sourceIp"
+      requestTime    = "$context.requestTime"
+      routeKey       = "$context.routeKey"
+      status         = "$context.status"
+      responseLength = "$context.responseLength"
+      latency        = "$context.responseLatency"
+      integrationErr = "$context.integrationErrorMessage"
+      authorizerErr  = "$context.authorizer.error"
+    })
+  }
 }
 
 resource "aws_lambda_permission" "apigw" {
