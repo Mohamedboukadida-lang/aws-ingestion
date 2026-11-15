@@ -136,3 +136,13 @@ Format: choice, alternatives, reason.
 - **Choice:** Client allows only the admin flow (`admin-initiate-auth`, which needs IAM credentials) and refresh tokens.
 - **Alternatives:** Keep USER_PASSWORD_AUTH; SRP; Hosted UI.
 - **Reason:** Verified `USER_PASSWORD_AUTH` is now rejected. Test tokens can still be minted by an IAM-authenticated operator, but a client cannot send a password directly to the pool.
+
+## 28. Test pyramid: moto unit tests in CI, smoke test against the deployed stack
+- **Choice:** 15 moto tests run on every PR and before every apply; `scripts/smoke_test.sh` checks the real deployment (401, 422, 202 twice, exactly one DynamoDB item).
+- **Alternatives:** LocalStack; moto only; a Python integration suite.
+- **Reason:** moto proves handler logic cheaply and fast. It cannot prove IAM, the JWT authorizer or the event source mapping, which is where the real bugs were (see WHAT_BROKE). A short shell smoke test covers those with a unique device id per run, so reruns never collide, and it deletes its own Cognito user. LocalStack was skipped: its IAM and API Gateway JWT behaviour is not faithful enough to trust, and the real stack costs cents.
+
+## 29. checkov policy scan with a documented skip list
+- **Choice:** `.checkov.yaml` runs in the PR workflow; 15 checks fixed or skipped, each skip has a one-line reason.
+- **Alternatives:** Silence nothing and fix everything; tfsec/tflint; no scanner.
+- **Reason:** 31 findings at first. Fixed what was cheap and correct (X-Ray on all Lambdas, abort incomplete multipart uploads). The rest are cost or scope trade-offs (VPC, CMKs, replication, 1-year logs). Skipping explicitly in a file reviewers can read is more honest than ignoring the scanner; CI now fails if a new finding appears.

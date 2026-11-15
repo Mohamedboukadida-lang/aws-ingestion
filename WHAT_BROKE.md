@@ -77,3 +77,9 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** `default_tags` tags the mapping, and the apply role had only the Create/Update/Delete actions.
 - **Fix:** Added `TagResource`, `UntagResource`, `ListTags` to the mapping statement.
 - **Lesson:** Least privilege is discovered by running the pipeline. A real apply is the only complete test of the policy, and it also proves `destroy` works.
+
+## Day 9: checkov reported 31 failures on a stack I considered clean
+- **Symptom:** `uvx checkov -d infra` showed 31 failed checks across Lambda, S3, logs and API Gateway.
+- **Cause:** Defaults I had not chosen deliberately: no X-Ray on two Lambdas, no multipart-upload abort rule, plus CMK/VPC/replication checks that do not fit a low-cost dev project.
+- **Fix:** Fixed the two real gaps; skipped the rest in `.checkov.yaml` with a reason per line.
+- **Lesson:** A scanner is useful for the conversation it forces: every skip is a trade-off I can now explain.
