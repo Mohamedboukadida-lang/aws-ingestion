@@ -1,0 +1,25 @@
+# Policy scan for infra/. Every skip below is a deliberate decision, not an oversight.
+# Run: uvx checkov --config-file .checkov.yaml
+directory: [infra]
+framework: [terraform]
+compact: true
+quiet: true
+skip-check:
+  # Lambda
+  - CKV_AWS_117  # VPC: functions only call AWS public APIs; a VPC would need NAT/endpoints (cost) for no isolation benefit here
+  - CKV_AWS_115  # Reserved concurrency: new accounts have a small total limit; reserving can make deploys fail. Revisit with the load test (day 12)
+  - CKV_AWS_116  # Lambda DLQ: ingest is synchronous, consumer failures go to the SQS DLQ; aggregate is idempotent and re-runnable by day
+  - CKV_AWS_272  # Code signing: no signing pipeline; deploys are from CI via OIDC only
+  - CKV_AWS_173  # Env var KMS: variables are a queue URL / table name, not secrets (secrets go to Secrets Manager)
+  # Encryption with customer-managed keys (each CMK costs ~1 USD/month; AWS-managed keys are used)
+  - CKV_AWS_119  # DynamoDB CMK
+  - CKV_AWS_145  # S3 KMS
+  - CKV_AWS_158  # Log group KMS
+  # Logs
+  - CKV_AWS_338  # 1-year log retention: 14 days is enough for a dev project, cost
+  - CKV_AWS_76   # API access logs: planned for day 10 (observability)
+  # S3 archive (single-region dev bucket with deterministic keys)
+  - CKV_AWS_144  # Cross-region replication: single-region by design, cost
+  - CKV_AWS_18   # S3 access logging: needs a second bucket; revisit if audit is needed
+  - CKV_AWS_21   # Versioning: objects are write-once with deterministic keys, lifecycle expires them
+  - CKV2_AWS_62  # Event notifications: nothing consumes S3 events

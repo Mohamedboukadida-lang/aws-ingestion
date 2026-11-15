@@ -30,6 +30,9 @@ jobs:
           scripts/build_lambda.sh consumer
           scripts/build_lambda.sh aggregate
 
+      - name: Policy scan (checkov)
+        run: uvx checkov --config-file .checkov.yaml
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}

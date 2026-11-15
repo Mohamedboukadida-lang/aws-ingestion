@@ -64,6 +64,12 @@ data "aws_iam_policy_document" "consumer" {
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.archive.arn}/raw/*"]
   }
+  # Wildcard justified: X-Ray write actions do not support resource-level permissions.
+  statement {
+    sid       = "XRayWrite"
+    actions   = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "consumer" {
@@ -92,6 +98,12 @@ data "aws_iam_policy_document" "aggregator" {
     sid       = "WriteAggregates"
     actions   = ["dynamodb:PutItem"]
     resources = [aws_dynamodb_table.events.arn]
+  }
+  # Wildcard justified: X-Ray write actions do not support resource-level permissions.
+  statement {
+    sid       = "XRayWrite"
+    actions   = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
+    resources = ["*"]
   }
 }
 
