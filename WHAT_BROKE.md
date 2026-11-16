@@ -95,3 +95,15 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** Lambda metrics are published with a delay and alarms evaluate on 5-minute periods.
 - **Fix:** None; expected. Verified the alarm fires.
 - **Lesson:** Alarms are not instant. Do not use a 5-minute-period alarm as a readiness check right after a deploy.
+
+## Day 10: `terraform destroy` hit a state lock held by another process
+- **Symptom:** `Error acquiring the state lock` (S3 `PreconditionFailed`) right after the previous commands.
+- **Cause:** Another destroy of the same stack was already running (its lock file and `terraform-provider-aws` child process were visible). It finished on its own, so the state ended empty.
+- **Fix:** Did not force-unlock. Inspected the `.tflock` object (who, when, operation), confirmed the process was alive, waited for it to finish, then verified the state and the account were empty.
+- **Lesson:** A lock is protection, not an error to bypass. Read who holds it first; `force-unlock` on a live operation can corrupt state.
+
+## Day 10: access log group looked empty at first
+- **Symptom:** No lines in the API access log group right after the smoke test.
+- **Cause:** Log delivery lag of about a minute.
+- **Fix:** Re-queried after a short wait; JSON lines (including the 401 with `authorizerErr`) appeared.
+- **Lesson:** Wait before concluding logging is broken.
