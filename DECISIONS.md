@@ -152,32 +152,17 @@ Format: choice, alternatives, reason.
 - **Alternatives:** Alarm on every metric; percentage error rates; anomaly detection.
 - **Reason:** Each alarm maps to a different failure: a code bug (Errors), a gateway or integration fault (5xx), a stuck or slow consumer before anything is lost (queue age), and a poison message (DLQ). Queue age is the early warning: it fires minutes before a message can reach the DLQ. Absolute thresholds are fine at this volume; rate-based alarms need traffic to be meaningful.
 
-## 31. Alert email is optional and set only locally
-- **Choice:** `alert_email` defaults to empty; the SNS subscription is created only when passed (`-var alert_email=...`). CI applies leave it empty.
-- **Alternatives:** Commit the address; store it in a repo variable; Secrets Manager.
-- **Reason:** The repo is public. The stack is destroyed daily, and an email subscription must be re-confirmed after each recreate, so a permanent subscription would need a topic that is not destroyed (candidate for a later change).
+## 31. Dashboard and saved Logs Insights queries as code
+- **Choice:** One dashboard (API, queue and DLQ, Lambda errors/throttles, p95 duration, alarm panel) and three saved queries, all in Terraform.
+- **Alternatives:** Build in the console; Grafana.
+- **Reason:** `infra/` is destroyed daily, so console-built dashboards would vanish. The queries read the JSON fields from day 4 (`msg`, `status`, `duration_ms`, `outcome`) with no parsing.
 
 ## 32. API access logs as JSON in a dedicated log group
 - **Choice:** HTTP API stage writes JSON access logs (request id, route, status, latency, authorizer error) with 14-day retention.
 - **Alternatives:** No access logs; plain format.
 - **Reason:** Rejected requests (401) never reach the Lambda, so only the gateway log shows them. The same `requestId` appears in the Lambda log, so one request can be traced across both. This also removes a checkov skip.
 
-## 30. Alarm set: errors, 5xx, queue age, DLQ depth
-- **Choice:** Per-Lambda `Errors > 0` (5 min), API `5xx > 0`, oldest queue message > 300 s for 3 minutes, DLQ depth > 0. `treat_missing_data = notBreaching` on all.
-- **Alternatives:** Error-rate percentages; anomaly detection; only the DLQ alarm.
-- **Reason:** At this traffic level a single error matters and a rate would hide it. Queue age fires earlier than the DLQ, which only fills after 3 failed receives (~9 min). Missing data is normal for idle serverless, so it must not alarm.
-
-## 31. Dashboard and saved Logs Insights queries as code
-- **Choice:** One dashboard (API, queue and DLQ, Lambda errors/throttles, p95 duration, alarm panel) and three saved queries, all in Terraform.
-- **Alternatives:** Build in the console; Grafana.
-- **Reason:** `infra/` is destroyed daily, so console-built dashboards would vanish. The queries read the JSON fields from day 4 (`msg`, `status`, `duration_ms`, `outcome`) with no parsing.
-
-## 32. API Gateway access logs in JSON, separate from Lambda logs
-- **Choice:** Stage access logs to their own log group, 14-day retention, with request id, route, status, latency and authorizer error.
-- **Alternatives:** Rely on Lambda logs only.
-- **Reason:** Requests rejected by the JWT authorizer (401) never reach the Lambda, so they are invisible in Lambda logs. The `authorizerErr` field shows why a token was refused. The request id matches the one in the Lambda log line, so the two views join up.
-
-## 33. SNS email subscription is optional and set locally
-- **Choice:** `alert_email` defaults to empty; the subscription exists only when passed with `-var`.
-- **Alternatives:** Hard-code the email; store it in a tfvars file in git.
-- **Reason:** The repo is public. CI applies leave it empty, so a pipeline run never creates a pending subscription. The subscription must be re-confirmed after each destroy cycle.
+## 33. Alert email is optional and set only locally
+- **Choice:** `alert_email` defaults to empty; the SNS subscription is created only when passed (`-var alert_email=...`). CI applies leave it empty.
+- **Alternatives:** Commit the address; store it in a repo variable; Secrets Manager.
+- **Reason:** The repo is public. The stack is destroyed daily, and an email subscription must be re-confirmed after each recreate, so a permanent subscription would need a topic that is not destroyed (candidate for a later change).
