@@ -146,3 +146,18 @@ Format: choice, alternatives, reason.
 - **Choice:** `.checkov.yaml` runs in the PR workflow; 15 checks fixed or skipped, each skip has a one-line reason.
 - **Alternatives:** Silence nothing and fix everything; tfsec/tflint; no scanner.
 - **Reason:** 31 findings at first. Fixed what was cheap and correct (X-Ray on all Lambdas, abort incomplete multipart uploads). The rest are cost or scope trade-offs (VPC, CMKs, replication, 1-year logs). Skipping explicitly in a file reviewers can read is more honest than ignoring the scanner; CI now fails if a new finding appears.
+
+## 30. Alarm set: errors per Lambda, API 5xx, queue age, DLQ depth
+- **Choice:** Alarms on Lambda `Errors` (one per function), HTTP API `5xx`, SQS `ApproximateAgeOfOldestMessage` > 300 s for 3 minutes, and the DLQ-not-empty alarm; all notify one SNS topic. `treat_missing_data = notBreaching` so quiet periods stay `OK`.
+- **Alternatives:** Alarm on every metric; percentage error rates; anomaly detection.
+- **Reason:** Each alarm maps to a different failure: a code bug (Errors), a gateway or integration fault (5xx), a stuck or slow consumer before anything is lost (queue age), and a poison message (DLQ). Queue age is the early warning: it fires minutes before a message can reach the DLQ. Absolute thresholds are fine at this volume; rate-based alarms need traffic to be meaningful.
+
+## 31. Alert email is optional and set only locally
+- **Choice:** `alert_email` defaults to empty; the SNS subscription is created only when passed (`-var alert_email=...`). CI applies leave it empty.
+- **Alternatives:** Commit the address; store it in a repo variable; Secrets Manager.
+- **Reason:** The repo is public. The stack is destroyed daily, and an email subscription must be re-confirmed after each recreate, so a permanent subscription would need a topic that is not destroyed (candidate for a later change).
+
+## 32. API access logs as JSON in a dedicated log group
+- **Choice:** HTTP API stage writes JSON access logs (request id, route, status, latency, authorizer error) with 14-day retention.
+- **Alternatives:** No access logs; plain format.
+- **Reason:** Rejected requests (401) never reach the Lambda, so only the gateway log shows them. The same `requestId` appears in the Lambda log, so one request can be traced across both. This also removes a checkov skip.

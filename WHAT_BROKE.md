@@ -83,3 +83,15 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** Defaults I had not chosen deliberately: no X-Ray on two Lambdas, no multipart-upload abort rule, plus CMK/VPC/replication checks that do not fit a low-cost dev project.
 - **Fix:** Fixed the two real gaps; skipped the rest in `.checkov.yaml` with a reason per line.
 - **Lesson:** A scanner is useful for the conversation it forces: every skip is a trade-off I can now explain.
+
+## Day 10: "Error acquiring the state lock" during a local apply
+- **Symptom:** `terraform apply` failed with a 412 PreconditionFailed on the `.tflock` object; the lock was held by my own user.
+- **Cause:** An earlier apply (started a second before, same command) was still running; native S3 locking correctly blocked the second. The state file grew while I checked, then the lock cleared.
+- **Fix:** Waited for the lock to clear and confirmed with `terraform plan` (No changes) instead of forcing an unlock.
+- **Lesson:** Do not `force-unlock` a lock that is actively held; check that no terraform process is running and that the state is changing first. This is the S3 `use_lockfile` behaviour working as designed.
+
+## Day 10: alarm for a failed invocation took ~2 minutes to reach ALARM
+- **Symptom:** Right after a deliberately bad Lambda invoke, the alarm showed `INSUFFICIENT_DATA`, then `OK`, then `ALARM`.
+- **Cause:** Lambda metrics are published with a delay and alarms evaluate on 5-minute periods.
+- **Fix:** None; expected. Verified the alarm fires.
+- **Lesson:** Alarms are not instant. Do not use a 5-minute-period alarm as a readiness check right after a deploy.
