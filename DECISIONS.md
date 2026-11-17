@@ -166,3 +166,14 @@ Format: choice, alternatives, reason.
 - **Choice:** `alert_email` defaults to empty; the SNS subscription is created only when passed (`-var alert_email=...`). CI applies leave it empty.
 - **Alternatives:** Commit the address; store it in a repo variable; Secrets Manager.
 - **Reason:** The repo is public. The stack is destroyed daily, and an email subscription must be re-confirmed after each recreate, so a permanent subscription would need a topic that is not destroyed (candidate for a later change).
+
+## 34. Alert email in Secrets Manager, read by Terraform
+- **Choice:** The address lives in the secret `aws-ingestion/alert-email` (created once with the CLI). `bootstrap/` reads it with a data source for the budget and the SNS subscription. The `alert_email` variable is gone.
+- **Alternatives:** `-var` on every run; a gitignored tfvars file; SSM Parameter Store (free).
+- **Reason:** One place for the value, nothing to remember or paste, and no `-var` flag that CI would have to know about. Cost is about 0.40 USD/month, inside the 10 USD budget. SSM would be free, but Secrets Manager is the service the project scope calls for, and rotation/audit features are the point of the exercise. Trade-off: the value still lands in the (private, encrypted, versioned) state file, which is acceptable for an email address, not for a real credential.
+
+## 35. Persistent alert topic in `bootstrap/`, unencrypted on purpose
+- **Choice:** SNS topic `aws-ingestion-alerts`, topic policy allowing `cloudwatch.amazonaws.com` (conditioned on this account), email subscription. `infra/` builds the topic ARN from the name.
+- **Alternatives:** Keep the topic in `infra/` (destroyed daily, subscription re-confirmed each time); encrypt with a customer-managed KMS key.
+- **Reason:** Moving it means the email is confirmed once. The topic is not encrypted with `alias/aws/sns` because CloudWatch alarms cannot publish to topics using the AWS-managed key; a CMK would cost about 1 USD/month for messages that hold only alarm names and numbers. The earlier topic in `infra/` was encrypted that way and would have failed silently.
+- **Verified:** forcing an alarm with `set-alarm-state` produced "Successfully executed action ...aws-ingestion-alerts" in the alarm history.

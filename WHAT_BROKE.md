@@ -107,3 +107,9 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** The apply role's log group statement covered only `/aws/lambda/<prefix>-*`. The new access log group lives under `/aws/apigateway/`.
 - **Fix:** Added the `/aws/apigateway/<prefix>-*` ARN to that statement, applied `bootstrap/`, re-ran the workflow (success), smoke test passed, destroy from CI succeeded.
 - **Lesson:** Every new resource type or naming path is a potential IAM gap in the deploy role. Same pattern as the day 8 tagging failure: the only full test of the policy is a real CI apply plus destroy.
+
+## Day 11: the alert topic from day 10 could never have delivered
+- **Symptom:** None yet. Found while moving the topic: it used `kms_master_key_id = "alias/aws/sns"`.
+- **Cause:** CloudWatch alarms cannot publish to an SNS topic encrypted with the AWS-managed key (only customer-managed keys work, with a key policy for CloudWatch). Alarms would show an action failure and no email.
+- **Fix:** The persistent topic is unencrypted with a documented reason, plus a topic policy for CloudWatch. Proved end to end with `set-alarm-state` and the alarm action history.
+- **Lesson:** An alarm that was never made to fire is untested. Always trigger it once, and read the action history, not just the alarm state.

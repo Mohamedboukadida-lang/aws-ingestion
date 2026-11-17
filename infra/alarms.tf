@@ -1,8 +1,3 @@
-resource "aws_sns_topic" "alerts" {
-  name              = "${local.name}-alerts"
-  kms_master_key_id = "alias/aws/sns"
-}
-
 # Any message in the DLQ means an event failed 3 times and needs a human.
 resource "aws_cloudwatch_metric_alarm" "dlq_not_empty" {
   alarm_name          = "${local.name}-dlq-not-empty"
@@ -16,5 +11,5 @@ resource "aws_cloudwatch_metric_alarm" "dlq_not_empty" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
+  alarm_actions       = [local.alerts_topic_arn]
 }

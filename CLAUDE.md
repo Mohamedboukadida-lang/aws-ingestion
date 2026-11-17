@@ -25,4 +25,4 @@ Cross-cutting: Secrets Manager, least-privilege IAM, GitHub Actions OIDC (no sto
 Use the `aws-ingestion-project-coach` skill. Ask for one small step at a time, tied to the current day.
 
 ## Progress
-- Days 1-10 done and verified through CI (apply, smoke test, destroy): state, IAM, ingest API, consumer, aggregation, OIDC CI/CD, checkov, observability. Next: day 11 (Secrets Manager, alarm tuning), day 12 load test, days 13-14 README/diagram/cost
+- Days 1-11 done: through observability, plus Secrets Manager and a persistent alert topic. Next: day 12 load test, days 13-14 README/diagram/cost

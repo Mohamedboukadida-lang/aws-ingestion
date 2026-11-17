@@ -1,25 +1,12 @@
-variable "alert_email" {
-  type        = string
-  default     = ""
-  description = "Email for alarm notifications. Empty = no subscription (CI applies leave it empty)."
-}
-
 locals {
+  # Persistent topic created in bootstrap/ (so the email subscription is confirmed once).
+  alerts_topic_arn = "arn:aws:sns:${var.region}:${local.account_id}:${var.project}-alerts"
+
   lambda_names = {
     ingest    = aws_lambda_function.ingest.function_name
     consumer  = aws_lambda_function.consumer.function_name
     aggregate = aws_lambda_function.aggregate.function_name
   }
-}
-
-# ---------- Alerts ----------
-# The email subscription must be confirmed by clicking the link AWS sends, and it is
-# re-created (and must be re-confirmed) after every destroy/apply cycle.
-resource "aws_sns_topic_subscription" "email" {
-  count     = var.alert_email == "" ? 0 : 1
-  topic_arn = aws_sns_topic.alerts.arn
-  protocol  = "email"
-  endpoint  = var.alert_email
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
@@ -35,7 +22,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
+  alarm_actions       = [local.alerts_topic_arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
@@ -50,7 +37,7 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
+  alarm_actions       = [local.alerts_topic_arn]
 }
 
 # Old messages mean the consumer is stuck or too slow, before anything reaches the DLQ.
@@ -66,7 +53,7 @@ resource "aws_cloudwatch_metric_alarm" "queue_age" {
   threshold           = 300
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
+  alarm_actions       = [local.alerts_topic_arn]
 }
 
 # ---------- API Gateway access logs ----------

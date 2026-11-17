@@ -209,11 +209,6 @@ data "aws_iam_policy_document" "apply" {
     ]
     resources = ["*"]
   }
-  statement {
-    sid       = "Sns"
-    actions   = ["sns:*"]
-    resources = ["arn:aws:sns:${local.region}:${local.account_id}:${local.prefix}-*"]
-  }
 
   # IAM: can only manage roles with the project prefix, and can only attach the
   # Lambda logging policy. This blocks creating an admin role to escalate privileges.
