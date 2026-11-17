@@ -101,3 +101,9 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** Log delivery lag of about a minute.
 - **Fix:** Re-queried after a short wait; JSON lines (including the 401 with `authorizerErr`) appeared.
 - **Lesson:** Wait before concluding logging is broken.
+
+## Day 10: CI apply failed on `logs:CreateLogGroup` for the API access log group
+- **Symptom:** `AccessDeniedException ... logs:CreateLogGroup on /aws/apigateway/aws-ingestion-dev-http` in the GitHub Actions apply.
+- **Cause:** The apply role's log group statement covered only `/aws/lambda/<prefix>-*`. The new access log group lives under `/aws/apigateway/`.
+- **Fix:** Added the `/aws/apigateway/<prefix>-*` ARN to that statement, applied `bootstrap/`, re-ran the workflow (success), smoke test passed, destroy from CI succeeded.
+- **Lesson:** Every new resource type or naming path is a potential IAM gap in the deploy role. Same pattern as the day 8 tagging failure: the only full test of the policy is a real CI apply plus destroy.
