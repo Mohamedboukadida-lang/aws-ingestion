@@ -158,9 +158,12 @@ data "aws_iam_policy_document" "apply" {
     resources = ["arn:aws:dynamodb:${local.region}:${local.account_id}:table/${local.prefix}-*"]
   }
   statement {
-    sid       = "LogGroups"
-    actions   = ["logs:*"]
-    resources = ["arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/lambda/${local.prefix}-*"]
+    sid     = "LogGroups"
+    actions = ["logs:*"]
+    resources = [
+      "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/lambda/${local.prefix}-*",
+      "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/apigateway/${local.prefix}-*",
+    ]
   }
   # Wildcard resource justified: DescribeLogGroups / DescribeAlarms do not support resource scoping.
   statement {
