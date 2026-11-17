@@ -70,7 +70,7 @@ resource "aws_budgets_budget" "monthly" {
     threshold                  = 50
     threshold_type             = "PERCENTAGE"
     notification_type          = "ACTUAL"
-    subscriber_email_addresses = [var.alert_email]
+    subscriber_email_addresses = [local.alert_email]
   }
 
   notification {
@@ -78,13 +78,8 @@ resource "aws_budgets_budget" "monthly" {
     threshold                  = 100
     threshold_type             = "PERCENTAGE"
     notification_type          = "FORECASTED"
-    subscriber_email_addresses = [var.alert_email]
+    subscriber_email_addresses = [local.alert_email]
   }
-}
-
-variable "alert_email" {
-  type        = string
-  description = "Email that receives budget alerts"
 }
 
 output "state_bucket" {
