@@ -40,4 +40,12 @@ resource "aws_lambda_event_source_mapping" "consumer" {
 
   # Only failed records are returned to the queue (then the DLQ after 3 receives).
   function_response_types = ["ReportBatchItemFailures"]
+
+  # This account's total Lambda concurrency limit is 10 and is shared with the API
+  # Lambda, so an unbounded consumer starves ingest (observed in the day 12 load test:
+  # consumer reached 6 concurrent and ingest was throttled). 2 is the minimum allowed.
+  # Raise it after a Service Quotas increase.
+  scaling_config {
+    maximum_concurrency = 2
+  }
 }

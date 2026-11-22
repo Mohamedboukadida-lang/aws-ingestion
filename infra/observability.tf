@@ -25,6 +25,24 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   alarm_actions       = [local.alerts_topic_arn]
 }
 
+# Throttled invocations are NOT counted in the Errors metric: the day 12 load test
+# produced hundreds of throttles with all Errors alarms still OK.
+resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
+  for_each            = { for k, v in local.lambda_names : k => v if k != "aggregate" }
+  alarm_name          = "${local.name}-${each.key}-throttles"
+  alarm_description   = "The ${each.key} Lambda was throttled (account concurrency limit)."
+  namespace           = "AWS/Lambda"
+  metric_name         = "Throttles"
+  dimensions          = { FunctionName = each.value }
+  statistic           = "Sum"
+  period              = 60
+  evaluation_periods  = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [local.alerts_topic_arn]
+}
+
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   alarm_name          = "${local.name}-api-5xx"
   alarm_description   = "API Gateway returned 5xx responses."

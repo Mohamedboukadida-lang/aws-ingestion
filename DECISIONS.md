@@ -177,3 +177,18 @@ Format: choice, alternatives, reason.
 - **Alternatives:** Keep the topic in `infra/` (destroyed daily, subscription re-confirmed each time); encrypt with a customer-managed KMS key.
 - **Reason:** Moving it means the email is confirmed once. The topic is not encrypted with `alias/aws/sns` because CloudWatch alarms cannot publish to topics using the AWS-managed key; a CMK would cost about 1 USD/month for messages that hold only alarm names and numbers. The earlier topic in `infra/` was encrypted that way and would have failed silently.
 - **Verified:** forcing an alarm with `set-alarm-state` produced "Successfully executed action ...aws-ingestion-alerts" in the alarm history.
+
+## 36. Cap consumer concurrency with the event source mapping
+- **Choice:** `scaling_config { maximum_concurrency = 2 }` on the SQS event source mapping (2 is the minimum AWS allows).
+- **Alternatives:** Reserved concurrency on the ingest Lambda; no cap; request a Service Quotas increase first.
+- **Reason:** This account's total Lambda concurrency limit is 10, shared by all functions. Reserved concurrency is impossible (AWS keeps 10 unreserved), and an unbounded consumer scaled to 6-9 concurrent and starved the API Lambda. Capping the consumer protects the customer-facing path; queued work simply drains a little slower. Raise it after a quota increase. This also closes the checkov skip I deferred for CKV_AWS_115 with a better answer: the right control here is on the consumer, not a reservation on ingest.
+
+## 37. Alarm on Lambda throttles, and clients must retry 503
+- **Choice:** Throttles alarm (ingest, consumer), kept alongside Errors and API 5xx. Load-test client retries 503/429 with jittered exponential backoff.
+- **Alternatives:** Rely on Errors/5xx alarms only; surface throttling as 429.
+- **Reason:** Throttled invocations do not appear in the Lambda Errors metric, so all Errors alarms stayed OK while hundreds of requests failed. Only the API 5xx alarm caught it. Retrying is safe because the idempotency key makes a repeated POST harmless, so 503 is a real contract: retry later, nothing is lost.
+
+## 38. Load test converges on the table, not on queue counters
+- **Choice:** `scripts/load_test.py` waits until DynamoDB holds every accepted event, then waits 10 s more to catch a late duplicate. The expected count is the set of events the API actually accepted.
+- **Alternatives:** Poll `ApproximateNumberOfMessages*`; compare against the number of events sent.
+- **Reason:** SQS queue counters are approximate and lag, so "queue empty" was reported while hundreds of events were still unprocessed. Comparing to events sent would blame the pipeline for requests the API rejected.
