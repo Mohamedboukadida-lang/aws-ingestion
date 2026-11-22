@@ -12,6 +12,7 @@ Needs IAM credentials and a deployed infra/ (reads terraform outputs).
 import argparse
 import json
 import random
+import secrets
 import statistics
 import subprocess
 import time
@@ -58,7 +59,7 @@ def main():
 
     run = uuid.uuid4().hex[:8]
     url, pool, client = tf("api_url"), tf("user_pool_id"), tf("user_pool_client_id")
-    user, password = f"load-{run}", "Load-Test-Pass-123!"
+    user, password = f"load-{run}", "Aa1!" + secrets.token_hex(12)  # throwaway user, random password
     idp = boto3.client("cognito-idp")
     sqs = boto3.client("sqs")
     ddb = boto3.client("dynamodb")
