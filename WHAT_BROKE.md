@@ -113,3 +113,21 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** CloudWatch alarms cannot publish to an SNS topic encrypted with the AWS-managed key (only customer-managed keys work, with a key policy for CloudWatch). Alarms would show an action failure and no email.
 - **Fix:** The persistent topic is unencrypted with a documented reason, plus a topic policy for CloudWatch. Proved end to end with `set-alarm-state` and the alarm action history.
 - **Lesson:** An alarm that was never made to fire is untested. Always trigger it once, and read the action history, not just the alarm state.
+
+## Day 12: 95% of requests failed with 503 at 20 concurrent clients
+- **Symptom:** 947 of 1000 POSTs returned 503; access log `integrationErr` was "The Lambda function is being throttled". The app's own 503 handler never ran (no `sqs_send_failed`).
+- **Cause:** The account's Lambda concurrency limit is 10 (`get-account-settings`), shared by every function. A cold-start burst (~3.9 s first request) plus the SQS consumer scaling to 6-9 concurrent used the whole limit.
+- **Fix:** Capped the consumer at `maximum_concurrency = 2`; added a throttles alarm; made the test client retry with backoff. Results: 4 workers no errors, 20 workers with retries all 1000 accepted (356 retries), 8 workers without retries 38% 503 (still within limits of the cap). Request a Service Quotas increase to remove the ceiling.
+- **Lesson:** Check the account's concurrency limit before sizing anything. Throttles are invisible to the Lambda Errors metric.
+
+## Day 12: load test first reported "queue drained" while 700 events were unprocessed
+- **Symptom:** "queue drained 0s after last POST" but only 93 of 800 items in DynamoDB.
+- **Cause:** `ApproximateNumberOfMessages*` lags and is approximate; also the expected count ignored rejected requests.
+- **Fix:** Converge on the table and compare to accepted events (decision 38).
+- **Lesson:** Never use approximate counters as a completion signal.
+
+## Day 12: cold start measured at ~3.9 s
+- **Symptom:** First request after deploy took 3867 ms; warm requests p50 ~60 ms; later "first" requests were warm (~100-200 ms).
+- **Cause:** Importing FastAPI + pydantic + boto3 at 256 MB during init.
+- **Fix:** Not changed. Options if it matters: more memory (more CPU at init), SnapStart/provisioned concurrency (cost), a lighter framework.
+- **Lesson:** Cold start only hurts the burst after idle; with retries and an async queue the user-visible effect is small.
