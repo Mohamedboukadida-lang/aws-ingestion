@@ -131,3 +131,9 @@ Format: symptom, cause, fix, lesson.
 - **Cause:** Importing FastAPI + pydantic + boto3 at 256 MB during init.
 - **Fix:** Not changed. Options if it matters: more memory (more CPU at init), SnapStart/provisioned concurrency (cost), a lighter framework.
 - **Lesson:** Cold start only hurts the burst after idle; with retries and an async queue the user-visible effect is small.
+
+## Day 14: history audit found fixed test passwords in scripts
+- **Symptom:** `git log -p` search showed `Load-Test-Pass-123!` and `Smoke-Test-Pass-123!` committed in the test scripts.
+- **Cause:** Throwaway Cognito users were created with hard-coded passwords for convenience.
+- **Fix:** Scripts now generate a random password per run. The old values remain in history, but they only ever protected users in pools that were destroyed minutes later; no real credential, account ID or key was found anywhere in history (searched for the account ID, AKIA keys, tokens, private keys, tfstate/tfvars/zip files).
+- **Lesson:** Do not rely on "it's only a test password": secret scanners cannot tell, and reviewers will notice. Run the history audit before calling a public repo finished.

@@ -25,4 +25,4 @@ Cross-cutting: Secrets Manager, least-privilege IAM, GitHub Actions OIDC (no sto
 Use the `aws-ingestion-project-coach` skill. Ask for one small step at a time, tied to the current day.
 
 ## Progress
-- Days 1-12 done: through observability, Secrets Manager, persistent alert topic, load test (account Lambda concurrency limit is 10). Next: days 13-14 README/diagram/cost estimate/10x notes
+- Days 1-14 complete: full pipeline, CI/CD via OIDC, observability, load test, README with diagram and cost estimate, history audit. Optional stretch: Service Quotas increase, one S3 object per batch, shard the by_day index
