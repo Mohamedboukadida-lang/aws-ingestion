@@ -7,7 +7,9 @@ cd "$(dirname "$0")/.."
 out() { terraform -chdir=infra output -raw "$1"; }
 pool=$(out user_pool_id); client=$(out user_pool_client_id); url=$(out api_url)
 table="aws-ingestion-dev-events"
-user="smoke-$$"; pass='Smoke-Test-Pass-123!'
+user="smoke-$$"
+# throwaway user, random password per run (meets the pool policy: upper, lower, digit, symbol)
+pass="Aa1!$(openssl rand -hex 12)"
 fail() { echo "FAIL: $*" >&2; cleanup; exit 1; }
 cleanup() { aws cognito-idp admin-delete-user --user-pool-id "$pool" --username "$user" 2>/dev/null || true; }
 trap cleanup EXIT
